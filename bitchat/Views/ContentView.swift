@@ -546,9 +546,14 @@ struct ContentView: View {
 
             if let issue = ConnectivityIssue.resolve(
                 bluetoothState: appChromeModel.bluetoothState,
-                torBlocked: appChromeModel.torBlocked
+                torBlocked: AggieLinkConfig.internetTransportsEnabled && appChromeModel.torBlocked
             ) {
                 ConnectivityStatusBanner(issue: issue)
+            }
+
+            if AggieLinkConfig.topicsEnabled, selectedPrivatePeerID == nil {
+                MeshStatusView()
+                TopicBarView()
             }
         }
         // Hosted here rather than on the logo Text so the pending dialog
@@ -611,12 +616,15 @@ struct ContentView: View {
 
     private func sendMessage() {
         guard let trimmed = messageText.trimmedOrNilIfEmpty else { return }
+        let outbound = selectedPrivatePeerID == nil
+            ? AggieTopic.outboundText(trimmed, selected: publicChatModel.selectedTopic)
+            : trimmed
 
         messageText = ""
         ComposerDraftStore.save("", for: activeDraftKey)
 
         DispatchQueue.main.async {
-            self.conversationUIModel.sendMessage(trimmed)
+            self.conversationUIModel.sendMessage(outbound)
         }
     }
 

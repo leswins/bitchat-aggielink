@@ -37,12 +37,12 @@ struct ContentHeaderView: View {
     /// The bridged-people count belongs to the mesh channel only.
     private var showBridgedPeerCount: Bool {
         if case .location = locationChannelsModel.selectedChannel { return false }
-        return bridgeService.bridgedPeerCount > 0
+        return AggieLinkConfig.internetTransportsEnabled && bridgeService.bridgedPeerCount > 0
     }
 
     var body: some View {
         HStack(spacing: 0) {
-            Text(verbatim: "bitchat/")
+            Text(verbatim: AggieLinkConfig.usesAggieAbout ? "aggie/" : "bitchat/")
                 .bitchatFont(size: 18, weight: .medium)
                 .lineLimit(1)
                 .foregroundColor(palette.primary)
@@ -121,11 +121,12 @@ struct ContentHeaderView: View {
                 // One number for the whole room: radio-reachable peers plus
                 // people across the bridge (visible via carriers even while
                 // this device's own bridge is off). The sheet breaks it down.
-                return countAndColor.0 + bridgeService.bridgedPeerCount
+                let bridgeExtra = AggieLinkConfig.internetTransportsEnabled ? bridgeService.bridgedPeerCount : 0
+                return countAndColor.0 + bridgeExtra
             }()
 
             HStack(spacing: 2) {
-                if locationChannelsModel.gatewayEnabled {
+                if AggieLinkConfig.internetTransportsEnabled && locationChannelsModel.gatewayEnabled {
                     // The gateway toggle lives in the App Info settings pane
                     // now, so the indicator deep-links there.
                     Button(action: { appChromeModel.presentAppInfo() }) {
@@ -176,6 +177,7 @@ struct ContentHeaderView: View {
                     )
                 }
 
+                if AggieLinkConfig.noticesEnabled {
                 Button(action: {
                     var scopes: Set<String> = [""]
                     if let geoScope = noticesGeoScope {
@@ -211,6 +213,17 @@ struct ContentHeaderView: View {
                 .help(
                     String(localized: "content.header.notices", defaultValue: "Notices: pinned posts for this area and the mesh", comment: "Tooltip for the notices button")
                 )
+                }
+
+                if AggieLinkConfig.showsInviteButton {
+                    Button(action: { activeSharePayload = ChannelSharePayload(text: InviteShare.text) }) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.bitchatSystem(size: 12))
+                            .headerTapTarget()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(verbatim: AggieLinkCopy.inviteButton))
+                }
 
                 if case .location(let channel) = locationChannelsModel.selectedChannel {
                     Button(action: { locationChannelsModel.toggleBookmark(channel.geohash) }) {
@@ -238,6 +251,7 @@ struct ContentHeaderView: View {
                     )
                 }
 
+                if AggieLinkConfig.locationChannelsEnabled {
                 Button(action: { appChromeModel.isLocationChannelsSheetPresented = true }) {
                     let badgeText: String = {
                         switch locationChannelsModel.selectedChannel {
@@ -268,6 +282,7 @@ struct ContentHeaderView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                }
 
                 Button(action: {
                     withAnimation(.easeInOut(duration: TransportConfig.uiAnimationMediumSeconds)) {
@@ -374,7 +389,7 @@ struct ContentHeaderView: View {
                 pendingShareGeohash = nil
             }
         } message: {
-            Text(String(localized: "channel.share.precision_warning.message", defaultValue: "this channel covers a small area. an invite sent over sms or imessage is visible to the carrier and both handsets — it discloses interest in that place, not only that someone uses bitchat.", comment: "Body of the confirmation before sharing a fine-precision geohash invite"))
+            Text(String(localized: "channel.share.precision_warning.message", defaultValue: "this channel covers a small area. an invite sent over sms or imessage is visible to the carrier and both handsets — it discloses interest in that place, not only that someone uses Aggie Link.", comment: "Body of the confirmation before sharing a fine-precision geohash invite"))
         }
         .sheet(item: $activeSharePayload) { payload in
             ShareActivityView(text: payload.text)

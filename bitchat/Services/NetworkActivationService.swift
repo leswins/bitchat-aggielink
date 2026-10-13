@@ -63,6 +63,9 @@ final class NetworkActivationService: ObservableObject {
     private let relayControllerProvider: () -> NetworkActivationRelayControlling
     private let proxyController: NetworkActivationProxyControlling
     private let notificationCenter: NotificationCenter
+    /// Aggie Link leaves this false so Tor and Nostr never start. Tests pass
+    /// true to keep covering the upstream permission gate.
+    private let internetTransportsEnabled: Bool
 
     private init() {
         storage = .standard
@@ -80,6 +83,7 @@ final class NetworkActivationService: ObservableObject {
         relayControllerProvider = { NostrRelayManager.shared }
         proxyController = TorURLSession.shared
         notificationCenter = .default
+        internetTransportsEnabled = AggieLinkConfig.internetTransportsEnabled
     }
 
     internal init(
@@ -94,7 +98,8 @@ final class NetworkActivationService: ObservableObject {
         torController: NetworkActivationTorControlling,
         relayController: NetworkActivationRelayControlling,
         proxyController: NetworkActivationProxyControlling,
-        notificationCenter: NotificationCenter = .default
+        notificationCenter: NotificationCenter = .default,
+        internetTransportsEnabled: Bool = true
     ) {
         self.storage = storage
         self.locationPermissionPublisher = locationPermissionPublisher
@@ -108,6 +113,7 @@ final class NetworkActivationService: ObservableObject {
         self.relayControllerProvider = { relayController }
         self.proxyController = proxyController
         self.notificationCenter = notificationCenter
+        self.internetTransportsEnabled = internetTransportsEnabled
     }
 
     /// Whether Tor routing is switched on, read without main-actor isolation.
@@ -247,6 +253,7 @@ final class NetworkActivationService: ObservableObject {
     /// Base policy: who is allowed to use the network at all (permission or a
     /// mutual favorite), ignoring current link state.
     private func basePolicyAllowed() -> Bool {
+        guard internetTransportsEnabled else { return false }
         let permOK = permissionProvider() == .authorized
         let hasMutual = !mutualFavoritesProvider().isEmpty
         // Being in a location channel counts too. Teleporting into a geohash

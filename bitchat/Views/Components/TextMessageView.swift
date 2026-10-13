@@ -125,7 +125,7 @@ struct TextMessageView: View {
             }
 
             // Render payment chips (Lightning / Cashu) with rounded background
-            if !lightningLinks.isEmpty || !cashuLinks.isEmpty {
+            if AggieLinkConfig.paymentsEnabled && (!lightningLinks.isEmpty || !cashuLinks.isEmpty) {
                 HStack(spacing: 8) {
                     ForEach(lightningLinks, id: \.self) { link in
                         PaymentChipView(paymentType: .lightning(link))

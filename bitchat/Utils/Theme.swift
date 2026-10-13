@@ -10,6 +10,7 @@ import SwiftUI
 
 /// A user-selectable app-wide visual theme. Persisted by raw value.
 enum AppTheme: String, CaseIterable, Identifiable {
+    case aggie
     case matrix
     case liquidGlass
 
@@ -20,6 +21,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var displayNameKey: LocalizedStringKey {
         switch self {
+        case .aggie: return "Aggie Blue & Gold"
         case .matrix: return "app_info.appearance.matrix"
         case .liquidGlass: return "app_info.appearance.liquid_glass"
         }
@@ -29,6 +31,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// liquid glass uses the system default.
     var bodyFontDesign: Font.Design {
         switch self {
+        case .aggie: return .default
         case .matrix: return .monospaced
         case .liquidGlass: return .default
         }
@@ -45,6 +48,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Empty for matrix to keep its historical cache keys.
     var formatCacheVariant: String {
         switch self {
+        case .aggie: return "ag:"
         case .matrix: return ""
         case .liquidGlass: return "lg:"
         }
@@ -53,6 +57,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
     /// Resolves the semantic color palette for this theme under the given color scheme.
     func palette(for colorScheme: ColorScheme) -> ThemePalette {
         switch self {
+        case .aggie:
+            return .aggie(colorScheme)
         case .matrix:
             return .matrix(colorScheme)
         case .liquidGlass:
@@ -96,6 +102,22 @@ struct ThemePalette {
         )
     }
 
+    static func aggie(_ colorScheme: ColorScheme) -> ThemePalette {
+        let blue = Color(red: 0.0, green: 32.0 / 255.0, blue: 91.0 / 255.0)
+        let gold = Color(red: 1.0, green: 184.0 / 255.0, blue: 28.0 / 255.0)
+        let isDark = colorScheme == .dark
+        return ThemePalette(
+            background: isDark ? Color(red: 0.0, green: 0.05, blue: 0.12) : Color.white,
+            primary: isDark ? Color.white : blue,
+            secondary: isDark ? Color.white.opacity(0.72) : blue.opacity(0.72),
+            accent: isDark ? gold : blue,
+            locationAccent: gold,
+            accentBlue: isDark ? gold : blue,
+            alertRed: Color(red: 0.75, green: 0.1, blue: 0.1),
+            divider: isDark ? Color.white.opacity(0.16) : blue.opacity(0.12)
+        )
+    }
+
     static func liquidGlass(_: ColorScheme) -> ThemePalette {
         ThemePalette(
             background: systemBackground,
@@ -127,7 +149,7 @@ struct ThemePalette {
 }
 
 private struct AppThemeKey: EnvironmentKey {
-    static let defaultValue: AppTheme = .matrix
+    static let defaultValue: AppTheme = .aggie
 }
 
 extension EnvironmentValues {

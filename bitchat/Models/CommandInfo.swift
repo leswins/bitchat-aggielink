@@ -70,12 +70,15 @@ enum CommandInfo: String, Identifiable {
     }
 
     static func all(isGeoPublic: Bool, isGeoDM: Bool) -> [CommandInfo] {
-        var commands: [CommandInfo] = [.block, .unblock, .clear, .drop, .help, .hug, .message, .slap, .who]
+        var commands: [CommandInfo] = [.block, .unblock, .clear, .help, .hug, .message, .slap, .who]
+        if AggieLinkConfig.locationChannelsEnabled {
+            commands.append(.drop)
+        }
         // Cashu tokens are bearer instruments: in a public geohash any nearby
         // stranger can redeem one, so don't *suggest* /pay there (the
         // processor still allows it behind an explicit "public" confirm).
         // Payments make sense in every DM and in mesh public.
-        if !isGeoPublic {
+        if AggieLinkConfig.paymentsEnabled && !isGeoPublic {
             commands.append(.pay)
         }
         // The processor rejects favorites, groups, and mesh diagnostics in

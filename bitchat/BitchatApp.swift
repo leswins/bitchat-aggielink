@@ -14,58 +14,88 @@ struct BitchatApp: App {
     static let bundleID = Bundle.main.bundleIdentifier ?? "chat.bitchat"
     static let groupID = "group.\(bundleID)"
 
-    @StateObject private var runtime: AppRuntime
-    @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.matrix.rawValue
+    @StateObject private var runtimeHost: AppRuntimeHost
+    @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.aggie.rawValue
+    @AppStorage(AggieLinkOnboarding.completedKey) private var onboardingComplete = false
     #if os(iOS)
-    @Environment(\.scenePhase) var scenePhase
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #elseif os(macOS)
     @NSApplicationDelegateAdaptor(MacAppDelegate.self) var appDelegate
     #endif
 
     init() {
-        _runtime = StateObject(wrappedValue: AppRuntime())
+        let alreadyOnboarded = UserDefaults.standard.bool(forKey: AggieLinkOnboarding.completedKey)
+        _runtimeHost = StateObject(wrappedValue: AppRuntimeHost(startImmediately: alreadyOnboarded))
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.appTheme, AppTheme(rawValue: appThemeRawValue) ?? .matrix)
-                .environmentObject(runtime.publicChatModel)
-                .environmentObject(runtime.privateInboxModel)
-                .environmentObject(runtime.privateConversationModel)
-                .environmentObject(runtime.verificationModel)
-                .environmentObject(runtime.conversationUIModel)
-                .environmentObject(runtime.locationChannelsModel)
-                .environmentObject(runtime.peerListModel)
-                .environmentObject(runtime.appChromeModel)
-                .environmentObject(runtime.boardAlertsModel)
-                .environmentObject(runtime.sharedContentImportModel)
-                .onAppear {
-                    appDelegate.runtime = runtime
-                    runtime.start()
+            Group {
+                if onboardingComplete, let runtime = runtimeHost.runtime {
+                    AggieChatRoot(runtime: runtime)
+                        .onAppear {
+                            appDelegate.runtime = runtime
+                        }
+                } else {
+                    OnboardingView { nickname in
+                        // Save the nickname and build the runtime before the
+                        // completion flag. AppStorage watches that flag, and
+                        // Bluetooth has to exist before the chat shell appears.
+                        guard AggieLinkOnboarding.saveNickname(nickname) else { return }
+                        runtimeHost.startIfNeeded()
+                        AggieLinkOnboarding.markComplete()
+                        onboardingComplete = true
+                    }
                 }
-                .onOpenURL { url in
-                    runtime.handleOpenURL(url)
-                }
-                #if os(iOS)
-                .onChange(of: scenePhase) { newPhase in
-                    runtime.handleScenePhaseChange(newPhase)
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    runtime.handleDidBecomeActiveNotification()
-                }
-                #elseif os(macOS)
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    runtime.handleMacDidBecomeActiveNotification()
-                }
-                #endif
+            }
+            .environment(\.appTheme, AppTheme(rawValue: appThemeRawValue) ?? .aggie)
         }
         #if os(macOS)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         #endif
+    }
+}
+
+/// Chat shell wired to a live runtime. Kept separate so the first launch can
+/// show onboarding without constructing Bluetooth.
+private struct AggieChatRoot: View {
+    @ObservedObject var runtime: AppRuntime
+    #if os(iOS)
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
+
+    var body: some View {
+        ContentView()
+            .environmentObject(runtime.publicChatModel)
+            .environmentObject(runtime.privateInboxModel)
+            .environmentObject(runtime.privateConversationModel)
+            .environmentObject(runtime.verificationModel)
+            .environmentObject(runtime.conversationUIModel)
+            .environmentObject(runtime.locationChannelsModel)
+            .environmentObject(runtime.peerListModel)
+            .environmentObject(runtime.appChromeModel)
+            .environmentObject(runtime.boardAlertsModel)
+            .environmentObject(runtime.sharedContentImportModel)
+            .onAppear {
+                runtime.start()
+            }
+            .onOpenURL { url in
+                runtime.handleOpenURL(url)
+            }
+            #if os(iOS)
+            .onChange(of: scenePhase) { newPhase in
+                runtime.handleScenePhaseChange(newPhase)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                runtime.handleDidBecomeActiveNotification()
+            }
+            #elseif os(macOS)
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                runtime.handleMacDidBecomeActiveNotification()
+            }
+            #endif
     }
 }
 
