@@ -7,7 +7,7 @@ import SwiftUI
 struct AppInfoView: View {
     @Environment(\.dismiss) var dismiss
     @ThemedPalette private var palette
-    @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.matrix.rawValue
+    @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.aggie.rawValue
     @EnvironmentObject private var locationChannelsModel: LocationChannelsModel
     @ObservedObject private var bridgeService = BridgeService.shared
 
@@ -19,6 +19,7 @@ struct AppInfoView: View {
     var onPanicWipe: (@MainActor () -> Void)?
 
     @State private var showTopology = false
+    @State private var showInviteShare = false
     @State private var liveVoiceEnabled = PTTSettings.liveVoiceEnabled
     @State private var locationNotesEnabled = LocationNotesSettings.enabled
     @State private var hideMessagePreviews = NotificationPrivacySettings.hideMessagePreviews
@@ -41,7 +42,7 @@ struct AppInfoView: View {
     }
 
     private var selectedTheme: AppTheme {
-        AppTheme(rawValue: appThemeRawValue) ?? .matrix
+        AppTheme(rawValue: appThemeRawValue) ?? .aggie
     }
 
     private var textColor: Color { palette.primary }
@@ -66,7 +67,7 @@ struct AppInfoView: View {
             static let languageTitle = String(localized: "app_info.settings.language.title", defaultValue: "LANGUAGE", comment: "Section header (uppercase) for the app language picker in settings")
             static let languagePickerLabel = String(localized: "app_info.settings.language.picker_label", defaultValue: "app language", comment: "Label of the app language picker row in settings")
             static let languageSystem = String(localized: "app_info.settings.language.system", defaultValue: "system default", comment: "Menu option that clears the in-app language override so the app follows the device language")
-            static let languageRestartNote = String(localized: "app_info.settings.language.restart_note", defaultValue: "restart bitchat to apply the new language", comment: "Caption shown after the user picks a different app language; the change takes effect on next launch")
+            static let languageRestartNote = String(localized: "app_info.settings.language.restart_note", defaultValue: "restart Aggie Link to apply the new language", comment: "Caption shown after the user picks a different app language; the change takes effect on next launch")
 
             static let bridgeTitle = String(localized: "app_info.settings.bridge.title", defaultValue: "mesh bridge", comment: "Title of the mesh bridge toggle in settings")
             static let bridgeSubtitle = String(localized: "app_info.settings.bridge.subtitle", defaultValue: "joins nearby mesh islands over the internet: what you say in the mesh channel also reaches people in your area beyond radio range, and their messages appear here marked with the network glyph. while you have internet, your device also carries bridge and location-channel traffic for phones around you that have none.", comment: "Subtitle explaining what the mesh bridge toggle does")
@@ -120,7 +121,7 @@ struct AppInfoView: View {
 
             static let dangerTitle = String(localized: "app_info.settings.danger.title", defaultValue: "DANGER ZONE", comment: "Section header (uppercase) for destructive actions in settings")
             static let panicButton = String(localized: "app_info.settings.danger.panic_button", defaultValue: "panic wipe", comment: "Button in the settings danger zone that erases all local data after confirmation")
-            static let panicNote = String(localized: "app_info.settings.danger.panic_note", defaultValue: "erases all messages, keys, and identity. triple-tapping the bitchat/ logo does the same, instantly.", comment: "Caption under the panic wipe button explaining what it does and the triple-tap shortcut")
+            static let panicNote = String(localized: "app_info.settings.danger.panic_note", defaultValue: "erases all messages, keys, and identity. triple-tapping the aggie/ logo does the same, instantly.", comment: "Caption under the panic wipe button explaining what it does and the triple-tap shortcut")
             static let panicConfirmTitle = String(localized: "app_info.settings.danger.panic_confirm_title", defaultValue: "wipe all data?", comment: "Title of the confirmation dialog before a panic wipe")
             static let panicConfirmAction = String(localized: "app_info.settings.danger.panic_confirm_action", defaultValue: "wipe everything", comment: "Destructive confirmation button that performs the panic wipe")
         }
@@ -333,6 +334,7 @@ struct AppInfoView: View {
     @ViewBuilder
     private var settingsContent: some View {
         VStack(alignment: .leading, spacing: 24) {
+            if AggieLinkConfig.showsThemePicker {
             // Appearance — single row: label left, theme chips right
             HStack(spacing: 12) {
                 SectionHeader(Strings.appearanceTitle)
@@ -356,7 +358,9 @@ struct AppInfoView: View {
                     .accessibilityAddTraits(selectedTheme == theme ? .isSelected : [])
                 }
             }
+            }
 
+            if AggieLinkConfig.showsLanguagePicker {
             // Language — an in-app override so the UI language can differ
             // from the device language (takes effect on next launch).
             VStack(alignment: .leading, spacing: 12) {
@@ -402,7 +406,9 @@ struct AppInfoView: View {
                     }
                 }
             }
+            }
 
+            if AggieLinkConfig.voiceEnabled {
             // Voice — same card + IRC pill as every other toggle setting.
             VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(Strings.Voice.title)
@@ -421,7 +427,9 @@ struct AppInfoView: View {
                     )
                 }
             }
+            }
 
+            if AggieLinkConfig.internetTransportsEnabled || AggieLinkConfig.locationChannelsEnabled {
             // Connectivity: mesh bridge, internet gateway, tor routing
             VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(verbatim: Strings.Settings.connectivityTitle)
@@ -522,6 +530,7 @@ struct AppInfoView: View {
                     }
                 }
             }
+            }
 
             // Privacy: what a locked, seized, or borrowed phone gives away
             // without being unlocked.
@@ -569,10 +578,16 @@ struct AppInfoView: View {
                         Button("common.cancel", role: .cancel) {}
                     }
 
-                    Text(Strings.Settings.panicNote)
-                        .bitchatFont(size: 11)
-                        .foregroundColor(secondaryTextColor)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Group {
+                        if AggieLinkConfig.usesAggieAbout {
+                            Text(verbatim: AggieLinkCopy.panicNote)
+                        } else {
+                            Text(Strings.Settings.panicNote)
+                        }
+                    }
+                    .bitchatFont(size: 11)
+                    .foregroundColor(secondaryTextColor)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -742,6 +757,98 @@ struct AppInfoView: View {
 
     @ViewBuilder
     private var infoContent: some View {
+        if AggieLinkConfig.usesAggieAbout {
+            aggieAboutContent
+        } else {
+            legacyAboutContent
+        }
+    }
+
+    @ViewBuilder
+    private var aggieAboutContent: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .center, spacing: 8) {
+                Text(verbatim: AggieLinkConfig.displayName)
+                    .bitchatFont(size: 32, weight: .bold)
+                    .foregroundColor(textColor)
+                Text(verbatim: AggieLinkConfig.tagline)
+                    .bitchatFont(size: 16)
+                    .foregroundColor(secondaryTextColor)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical)
+
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(verbatim: "How to use")
+                Text(verbatim: AggieLinkCopy.aboutHowTo)
+                    .bitchatFont(size: 14)
+                    .foregroundColor(textColor)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: AggieLinkCopy.aboutLimits)
+                    .bitchatFont(size: 14)
+                    .foregroundColor(secondaryTextColor)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if topologyProvider != nil {
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeader(Strings.Network.title)
+                    Button {
+                        showTopology = true
+                    } label: {
+                        HStack(spacing: 0) {
+                            FeatureRow(info: Strings.Network.topology)
+                            Image(systemName: "chevron.right")
+                                .font(.bitchatSystem(size: 12))
+                                .foregroundColor(secondaryTextColor)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(verbatim: AggieLinkCopy.reportTitle)
+                Text(verbatim: AggieLinkCopy.acceptableUse)
+                    .bitchatFont(size: 14)
+                    .foregroundColor(textColor)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let reportURL = URL(string: "mailto:\(AggieLinkConfig.supportEmail)") {
+                    Link(destination: reportURL) {
+                        Text(verbatim: AggieLinkConfig.supportEmail)
+                            .bitchatFont(size: 15, weight: .semibold)
+                    }
+                    .accessibilityHint(Text(verbatim: "Opens email to report abuse"))
+                }
+            }
+
+            if AggieLinkConfig.showsInviteButton {
+                Button {
+                    showInviteShare = true
+                } label: {
+                    Text(verbatim: AggieLinkCopy.inviteButton)
+                        .bitchatFont(size: 15, weight: .semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(palette.accent)
+                .sheet(isPresented: $showInviteShare) {
+                    ShareActivityView(text: InviteShare.text)
+                }
+            }
+
+            Text(verbatim: AggieLinkCopy.protocolCredit)
+                .bitchatFont(size: 12)
+                .foregroundColor(secondaryTextColor)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding()
+    }
+
+    @ViewBuilder
+    private var legacyAboutContent: some View {
         VStack(alignment: .leading, spacing: 24) {
             // Header
             VStack(alignment: .center, spacing: 8) {

@@ -330,7 +330,7 @@ private struct ContentPeopleListView: View {
                         .bitchatFont(size: 18)
                         .foregroundColor(palette.primary)
                     Spacer()
-                    if case .mesh = locationChannelsModel.selectedChannel {
+                    if AggieLinkConfig.verificationUIEnabled, case .mesh = locationChannelsModel.selectedChannel {
                         Button(action: { showVerifySheet = true }) {
                             Image(systemName: "qrcode")
                                 .font(.bitchatSystem(size: 14))

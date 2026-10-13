@@ -67,8 +67,8 @@ final class PrivacyScreen {
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         let label = UILabel()
-        label.text = "bitchat"
-        label.font = .monospacedSystemFont(ofSize: 22, weight: .medium)
+        label.text = AggieLinkConfig.displayName
+        label.font = .systemFont(ofSize: 22, weight: .medium)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)

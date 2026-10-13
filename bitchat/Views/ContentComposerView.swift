@@ -130,7 +130,7 @@ struct ContentComposerView: View {
                         nearbyOnlyToggle
                     }
 
-                    if conversationUIModel.canSendMediaInCurrentContext {
+                    if AggieLinkConfig.mediaEnabled && conversationUIModel.canSendMediaInCurrentContext {
                         attachmentButton
                     }
 
@@ -301,7 +301,7 @@ private extension ContentComposerView {
     @ViewBuilder
     var sendOrMicButton: some View {
         let hasText = !messageText.trimmed.isEmpty
-        if conversationUIModel.canSendMediaInCurrentContext {
+        if AggieLinkConfig.voiceEnabled && conversationUIModel.canSendMediaInCurrentContext {
             ZStack {
                 micButtonView
                     .opacity(hasText ? 0 : 1)

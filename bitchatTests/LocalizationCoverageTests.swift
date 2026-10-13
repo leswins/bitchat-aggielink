@@ -47,7 +47,9 @@ struct LocalizationCoverageTests {
     @Test func mainCatalogCoversAllLocalesForEveryKey() throws {
         let catalog = try Self.loadCatalog("bitchat/Localizable.xcstrings")
         let expected = catalog.allLocales
-        #expect(expected.count > 1, "catalog should declare more locales than the source language")
+        // Aggie Link ships English only. The check below still fails if any
+        // translatable key is missing a locale that another key declares.
+        #expect(!expected.isEmpty, "catalog should declare the source language")
         for (key, locales) in catalog.coverage.sorted(by: { $0.key < $1.key }) {
             let missing = expected.subtracting(locales).sorted()
             #expect(missing.isEmpty, "\(key) is missing locales: \(missing.joined(separator: ", "))")

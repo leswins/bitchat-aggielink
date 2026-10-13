@@ -87,11 +87,19 @@ struct MeshEmptyStateView: View {
                 if isSearchingForPeers {
                     radarBlock
                 }
-                if let conversation = nearbyConversation {
+                if !AggieLinkConfig.usesAggieEmptyState, let conversation = nearbyConversation {
                     conversationHint(conversation)
                 }
-                if showsCheckNotesHint {
+                if !AggieLinkConfig.usesAggieEmptyState && showsCheckNotesHint {
                     checkNotesHint
+                }
+            } else if AggieLinkConfig.usesAggieEmptyState {
+                narrationLine(AggieLinkCopy.emptyStatePrimary)
+                narrationLine(AggieLinkCopy.emptyStateSecondary)
+                if isSearchingForPeers {
+                    Spacer(minLength: 24)
+                    radarBlock
+                    Spacer(minLength: 12)
                 }
             } else {
                 // The radar + tally already say "scanning, nobody yet", so

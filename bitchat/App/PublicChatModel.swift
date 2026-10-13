@@ -12,9 +12,16 @@ import SwiftUI
 @MainActor
 final class PublicChatModel: ObservableObject {
     @Published private(set) var activeChannel: ChannelID
+    /// Client-side filter over the single mesh timeline. `.all` shows every
+    /// public message, including ones from other bitchat clients.
+    @Published var selectedTopic: AggieTopic = .all
 
-    /// The active public conversation's timeline.
-    var messages: [BitchatMessage] { activeConversation.messages }
+    /// The active public conversation's timeline, filtered to the selected topic.
+    var messages: [BitchatMessage] {
+        let timeline = activeConversation.messages
+        guard AggieLinkConfig.topicsEnabled, case .mesh = activeChannel else { return timeline }
+        return selectedTopic.matching(timeline)
+    }
 
     private let conversations: ConversationStore
     private var activeConversation: Conversation

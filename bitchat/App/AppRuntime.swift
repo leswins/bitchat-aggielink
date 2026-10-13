@@ -119,7 +119,7 @@ final class AppRuntime: ObservableObject {
                 }
             )
         )
-        if chatViewModel.networkActivationAllowed {
+        if chatViewModel.networkActivationAllowed && AggieLinkConfig.internetTransportsEnabled {
             GeoRelayDirectory.shared.prefetchIfNeeded()
         }
         bindRuntimeObservers()
